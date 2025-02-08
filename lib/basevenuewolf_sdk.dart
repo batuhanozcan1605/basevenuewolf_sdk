@@ -26,6 +26,102 @@ class BasevenueWolfSDK {
     return 'bvw-${random.nextInt(1000000)}';
   }
 
+  Future<String> getTokenSymbol(String tokenContractAddress, {String? rpcUrl}) async {
+    // Use the provided rpcUrl or a default value.
+    final String _rpcUrl = rpcUrl ?? "https://sepolia.base.org";
+
+    // Create an HTTP client and initialize the Web3 client.
+    final httpClient = http.Client();
+    final ethClient = Web3Client(_rpcUrl, httpClient);
+
+    // Minimal ERC-20 ABI for the symbol function.
+    final String abi = '''
+    [
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [
+          { "name": "", "type": "string" }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ]
+    ''';
+
+    // Create a contract instance using the token's contract address.
+    final contract = DeployedContract(
+      ContractAbi.fromJson(abi, "ERC20"),
+      EthereumAddress.fromHex(tokenContractAddress),
+    );
+
+    // Get the 'symbol' function from the contract.
+    final symbolFunction = contract.function("symbol");
+
+    // Call the 'symbol' function; no parameters are required.
+    final result = await ethClient.call(
+      contract: contract,
+      function: symbolFunction,
+      params: [],
+    );
+
+    // Close the HTTP client.
+    httpClient.close();
+
+    // Return the token symbol.
+    return result.first as String;
+  }
+
+  Future<BigInt> getTokenTotalSupply(String tokenContractAddress, {String? rpcUrl}) async {
+    // Use the provided rpcUrl or a default value.
+    final String _rpcUrl = rpcUrl ?? "https://sepolia.base.org";
+
+    // Create an HTTP client and initialize the Web3 client.
+    final httpClient = http.Client();
+    final ethClient = Web3Client(_rpcUrl, httpClient);
+
+    // Minimal ERC-20 ABI for the totalSupply function.
+    final String abi = '''
+    [
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+          { "name": "", "type": "uint256" }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ]
+    ''';
+
+    // Create a contract instance using the token contract address.
+    final contract = DeployedContract(
+      ContractAbi.fromJson(abi, "ERC20"),
+      EthereumAddress.fromHex(tokenContractAddress),
+    );
+
+    // Get the totalSupply function from the contract.
+    final totalSupplyFunction = contract.function("totalSupply");
+
+    // Call the totalSupply function (no parameters needed).
+    final result = await ethClient.call(
+      contract: contract,
+      function: totalSupplyFunction,
+      params: [],
+    );
+
+    // Close the HTTP client.
+    httpClient.close();
+
+    // Return the total supply (as a BigInt).
+    return result.first as BigInt;
+  }
+
   Future<String> getTokenName(String tokenContractAddress, {String? rpcUrl}) async {
     // Set up the RPC URL; replace YOUR_INFURA_PROJECT_ID with your actual project ID.
     final String _rpcUrl = rpcUrl ?? "https://sepolia.base.org";
