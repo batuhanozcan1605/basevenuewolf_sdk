@@ -6,27 +6,38 @@ library;
 export 'src/basevenuewolf_sdk_base.dart';
 
 // TODO: Export any libraries intended for clients of this package.
-import 'dart:math';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web3dart/web3dart.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 
 class BasevenueWolfSDK {
-  final String _apiKey;
 
-  BasevenueWolfSDK()
-      : _apiKey = _generateDummyApiKey();
+  String baseUrl = 'https://basevenue-wolf.vercel.app';
 
-  String baseUrl = 'https://basevenuewolf.com/api';
+  Future<String> getUserTokenAddress(String userWalletAddress) async {
 
-  // Dummy API key generator for the POC
-  static String _generateDummyApiKey() {
-    final random = Random();
-    return 'bvw-${random.nextInt(1000000)}';
+    debugPrint("userWalletAddress $userWalletAddress");
+    // If your API is served from the same origin as your app, you can use a relative URL.
+    final Uri url = Uri.parse(
+        "$baseUrl/api/sdk?userWalletAddress=$userWalletAddress");
+
+    final response = await http.get(url, headers: {
+      "Content-Type": "application/json",
+    });
+    debugPrint("response.statusCode ${response.statusCode}");
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+      return jsonResponse["data"] as String;
+    } else {
+      throw Exception("Error: ${response.statusCode} - ${response.body}");
+    }
   }
 
-  Future<String> getTokenSymbol(String tokenContractAddress, {String? rpcUrl}) async {
+  Future<String> getTokenSymbol(String tokenContractAddress,
+      {String? rpcUrl}) async {
     // Use the provided rpcUrl or a default value.
     final String _rpcUrl = rpcUrl ?? "https://sepolia.base.org";
 
@@ -74,7 +85,8 @@ class BasevenueWolfSDK {
     return result.first as String;
   }
 
-  Future<BigInt> getTokenTotalSupply(String tokenContractAddress, {String? rpcUrl}) async {
+  Future<BigInt> getTokenTotalSupply(String tokenContractAddress,
+      {String? rpcUrl}) async {
     // Use the provided rpcUrl or a default value.
     final String _rpcUrl = rpcUrl ?? "https://sepolia.base.org";
 
@@ -122,7 +134,8 @@ class BasevenueWolfSDK {
     return result.first as BigInt;
   }
 
-  Future<String> getTokenName(String tokenContractAddress, {String? rpcUrl}) async {
+  Future<String> getTokenName(String tokenContractAddress,
+      {String? rpcUrl}) async {
     // Set up the RPC URL; replace YOUR_INFURA_PROJECT_ID with your actual project ID.
     final String _rpcUrl = rpcUrl ?? "https://sepolia.base.org";
 
@@ -174,8 +187,7 @@ class BasevenueWolfSDK {
     return result.first as String;
   }
 
-  Future<BigInt> getTokenBalance(
-      String tokenContractAddress,
+  Future<BigInt> getTokenBalance(String tokenContractAddress,
       String ownerAddress, {
         String? rpcUrl,
       }) async {
@@ -241,31 +253,14 @@ class BasevenueWolfSDK {
     return formatter.format(tokens);
   }
 
-  // Example method to get a user's main token balance
-  Future<double> getUsersMainTokenBalance(String userId) async {
-    final uri = Uri.parse('$baseUrl/getBalance?userId=$userId&apiKey=$_apiKey');
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      // For the POC, assume the response body is a number in string format
-      return double.tryParse(response.body) ?? 0.0;
-    } else {
-      throw Exception('Error fetching token balance');
-    }
+   String formatTotalSupply(BigInt rawSupply, {int decimals = 18}) {
+    print("rawSupply $rawSupply");
+    // Convert BigInt to double value based on token decimals.
+    double supplyValue = rawSupply / BigInt.from(math.pow(10, decimals));
+
+    // Use NumberFormat to add commas (no decimal places)
+    final formatter = NumberFormat("#,##0", "en_US");
+    return formatter.format(supplyValue);
   }
 
-  // Example method to get the main token address
-  Future<String> getMainTokenAddress() async {
-    final uri = Uri.parse('$baseUrl/getMainTokenAddress?apiKey=$_apiKey');
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      return response.body;
-    } else {
-      throw Exception('Error fetching token address');
-    }
-  }
-
-  String getDummyMainTokenAddress() {
-    print("SDK has worked.");
-    return "0x123456789";
-  }
 }
